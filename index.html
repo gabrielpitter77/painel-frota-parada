@@ -167,10 +167,31 @@
     background:var(--bg-card);
     border:1px solid var(--border-line);
     border-radius:6px;
-    overflow:hidden;
+    overflow-x:auto;
   }
 
-  table{width:100%;border-collapse:collapse;font-size:13px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:1100px;}
+
+  tbody td{max-width:280px;overflow:hidden;text-overflow:ellipsis;}
+  tbody td.wrap-cell{white-space:normal;}
+
+  .bucket-strip{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+    gap:10px;
+    margin-bottom:20px;
+  }
+
+  .bucket-card{
+    background:var(--bg-card);
+    border:1px solid var(--border-line);
+    border-radius:6px;
+    padding:10px 14px;
+    text-align:center;
+  }
+
+  .bucket-card .bucket-label{font-size:11px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px;}
+  .bucket-card .bucket-value{font-family:'Oswald',sans-serif;font-size:20px;font-weight:600;}
 
   thead th{
     text-align:left;
@@ -255,6 +276,8 @@
 
   <div class="kpis" id="kpi-strip"></div>
 
+  <div class="bucket-strip" id="bucket-strip"></div>
+
   <div class="filters">
     <input type="text" id="search-input" placeholder="Buscar placa, analista, modelo...">
     <select id="status-filter">
@@ -262,6 +285,16 @@
       <option value="critico">Crítico</option>
       <option value="atencao">Atenção</option>
       <option value="normal">Normal</option>
+    </select>
+    <select id="bucket-filter">
+      <option value="">Todas as faixas</option>
+      <option value="0-1">0-1 dia</option>
+      <option value="2-3">2-3 dias</option>
+      <option value="4-10">4-10 dias</option>
+      <option value="11-20">11-20 dias</option>
+      <option value="21-30">21-30 dias</option>
+      <option value="31-60">31-60 dias</option>
+      <option value="61+">Acima de 60 dias</option>
     </select>
   </div>
 
@@ -321,6 +354,18 @@
     return "normal";
   }
 
+  function classifyBucket(diasStr){
+    const dias = parseFloat(String(diasStr).replace(",", "."));
+    if(isNaN(dias)) return null;
+    if(dias <= 1) return "0-1";
+    if(dias <= 3) return "2-3";
+    if(dias <= 10) return "4-10";
+    if(dias <= 20) return "11-20";
+    if(dias <= 30) return "21-30";
+    if(dias <= 60) return "31-60";
+    return "61+";
+  }
+
   function render(){
     const diasCol = findColumn(["dias parado", "dias"]);
     const analistaCol = findColumn(["analista"]);
@@ -338,16 +383,19 @@
       }
       if(!status && diasCol) status = classify(obj[diasCol]);
       obj.__status = status;
+      obj.__bucket = diasCol ? classifyBucket(obj[diasCol]) : null;
       return obj;
     });
 
     const search = document.getElementById("search-input").value.toLowerCase();
     const statusFilter = document.getElementById("status-filter").value;
+    const bucketFilter = document.getElementById("bucket-filter").value;
 
     let filtered = rows.filter(r => {
       const matchesSearch = !search || Object.values(r).some(v => String(v).toLowerCase().includes(search));
       const matchesStatus = !statusFilter || r.__status === statusFilter;
-      return matchesSearch && matchesStatus;
+      const matchesBucket = !bucketFilter || r.__bucket === bucketFilter;
+      return matchesSearch && matchesStatus && matchesBucket;
     });
 
     if(sortState.col){
@@ -363,7 +411,23 @@
     }
 
     renderKPIs(rows);
+    renderBuckets(rows);
     renderTable(filtered);
+  }
+
+  function renderBuckets(rows){
+    const labels = {
+      "4-10": "4 a 10 dias",
+      "11-20": "11 a 20 dias",
+      "21-30": "21 a 30 dias",
+      "31-60": "31 a 60 dias",
+      "61+": "Acima de 60 dias"
+    };
+    const strip = document.getElementById("bucket-strip");
+    strip.innerHTML = Object.keys(labels).map(key => {
+      const count = rows.filter(r => r.__bucket === key).length;
+      return `<div class="bucket-card"><div class="bucket-label">${labels[key]}</div><div class="bucket-value">${count}</div></div>`;
+    }).join("");
   }
 
   function renderKPIs(rows){
@@ -398,11 +462,16 @@
       tbody += `<tr class="${rowClass}">`;
       headers.forEach(h => {
         let val = r[h];
+        const isLongText = /pend|solu|obs|situa/i.test(h);
         if(h.toLowerCase().includes("status") && r.__status){
           const label = r.__status === "critico" ? "Crítico" : r.__status === "atencao" ? "Atenção" : "Normal";
           val = `<span class="badge ${r.__status}">${label}</span>`;
+          tbody += `<td>${val}</td>`;
+        } else if(isLongText){
+          tbody += `<td class="wrap-cell" title="${String(val).replace(/"/g,'&quot;')}">${val}</td>`;
+        } else {
+          tbody += `<td title="${String(val).replace(/"/g,'&quot;')}">${val}</td>`;
         }
-        tbody += `<td>${val}</td>`;
       });
       tbody += "</tr>";
     });
@@ -449,6 +518,7 @@
 
   document.getElementById("search-input").addEventListener("input", render);
   document.getElementById("status-filter").addEventListener("change", render);
+  document.getElementById("bucket-filter").addEventListener("change", render);
 
   loadData();
   setInterval(loadData, REFRESH_MS);
