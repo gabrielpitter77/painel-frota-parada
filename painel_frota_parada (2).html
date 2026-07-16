@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Frota Parada — Loc Frota</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* =========================================================
+     CONFIGURACAO — troque a URL abaixo pelo link do seu CSV
+     publicado no Google Sheets (Arquivo > Compartilhar >
+     Publicar na web > escolha a aba > formato CSV)
+     ========================================================= */
+
+  :root{
+    --bg-page:#14161A;
+    --bg-card:#1C1F24;
+    --bg-card-hover:#22262C;
+    --border-line:#2B2F36;
+    --text-primary:#EDEEEF;
+    --text-secondary:#9AA0A8;
+    --text-muted:#666C74;
+    --accent:#F2B705;
+    --accent-dark:#8A6600;
+    --critico:#E24B4A;
+    --critico-bg:rgba(226,75,74,0.12);
+    --atencao:#EF9F27;
+    --atencao-bg:rgba(239,159,39,0.12);
+    --normal:#5DCAA5;
+    --normal-bg:rgba(93,202,165,0.12);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+
+  body{
+    background:var(--bg-page);
+    color:var(--text-primary);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    padding:32px 24px 64px;
+  }
+
+  .wrap{max-width:1180px;margin:0 auto;}
+
+  /* ---------- Header ---------- */
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:16px;
+    margin-bottom:20px;
+  }
+
+  .title-block h1{
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    font-size:30px;
+    letter-spacing:0.3px;
+    text-transform:uppercase;
+  }
+
+  .title-block p{
+    color:var(--text-secondary);
+    font-size:14px;
+    margin-top:4px;
+  }
+
+  .header-meta{
+    text-align:right;
+    font-size:13px;
+    color:var(--text-secondary);
+  }
+
+  .header-meta .dot{
+    display:inline-block;
+    width:8px;height:8px;
+    border-radius:50%;
+    background:var(--normal);
+    margin-right:6px;
+  }
+
+  .header-meta .dot.stale{background:var(--critico);}
+
+  #refresh-btn{
+    margin-top:6px;
+    background:transparent;
+    border:1px solid var(--border-line);
+    color:var(--text-primary);
+    font-size:12px;
+    padding:6px 12px;
+    border-radius:4px;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+
+  #refresh-btn:hover{background:var(--bg-card-hover);}
+
+  /* ---------- Road stripe divider (signature element) ---------- */
+  .road-stripe{
+    height:3px;
+    background-image:repeating-linear-gradient(90deg,var(--accent) 0 24px, transparent 24px 44px);
+    margin:20px 0 28px;
+    opacity:0.9;
+  }
+
+  /* ---------- KPI strip ---------- */
+  .kpis{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:12px;
+    margin-bottom:28px;
+  }
+
+  .kpi-card{
+    background:var(--bg-card);
+    border:1px solid var(--border-line);
+    border-radius:6px;
+    padding:16px 18px;
+    border-left:3px solid var(--border-line);
+  }
+
+  .kpi-card.critico{border-left-color:var(--critico);}
+  .kpi-card.atencao{border-left-color:var(--atencao);}
+  .kpi-card.normal{border-left-color:var(--normal);}
+  .kpi-card.total{border-left-color:var(--accent);}
+
+  .kpi-label{
+    font-size:12px;
+    color:var(--text-secondary);
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    margin-bottom:8px;
+  }
+
+  .kpi-value{
+    font-family:'Oswald',sans-serif;
+    font-size:32px;
+    font-weight:600;
+  }
+
+  /* ---------- Filters ---------- */
+  .filters{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:16px;
+  }
+
+  .filters input, .filters select{
+    background:var(--bg-card);
+    border:1px solid var(--border-line);
+    color:var(--text-primary);
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    padding:8px 12px;
+    border-radius:4px;
+  }
+
+  .filters input{flex:1;min-width:200px;}
+  .filters input:focus, .filters select:focus{outline:1px solid var(--accent);}
+
+  /* ---------- Table ---------- */
+  .table-card{
+    background:var(--bg-card);
+    border:1px solid var(--border-line);
+    border-radius:6px;
+    overflow:hidden;
+  }
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+
+  thead th{
+    text-align:left;
+    padding:12px 16px;
+    background:#20242A;
+    color:var(--text-secondary);
+    font-weight:500;
+    text-transform:uppercase;
+    font-size:11px;
+    letter-spacing:0.4px;
+    cursor:pointer;
+    white-space:nowrap;
+    border-bottom:1px solid var(--border-line);
+  }
+
+  thead th:hover{color:var(--text-primary);}
+
+  tbody td{
+    padding:11px 16px;
+    border-bottom:1px solid var(--border-line);
+    white-space:nowrap;
+  }
+
+  tbody tr{border-left:3px solid transparent;}
+  tbody tr:hover{background:var(--bg-card-hover);}
+  tbody tr.row-critico{border-left-color:var(--critico);}
+  tbody tr.row-atencao{border-left-color:var(--atencao);}
+  tbody tr.row-normal{border-left-color:var(--normal);}
+
+  .badge{
+    display:inline-block;
+    font-size:11px;
+    font-weight:600;
+    padding:3px 9px;
+    border-radius:10px;
+    text-transform:uppercase;
+    letter-spacing:0.3px;
+  }
+
+  .badge.critico{background:var(--critico-bg);color:var(--critico);}
+  .badge.atencao{background:var(--atencao-bg);color:var(--atencao);}
+  .badge.normal{background:var(--normal-bg);color:var(--normal);}
+
+  .empty-state, .error-state{
+    text-align:center;
+    padding:60px 20px;
+    color:var(--text-secondary);
+  }
+
+  .error-state{color:var(--critico);}
+
+  footer{
+    margin-top:24px;
+    text-align:center;
+    font-size:12px;
+    color:var(--text-muted);
+  }
+
+  @media (max-width:640px){
+    .title-block h1{font-size:22px;}
+    .header-meta{text-align:left;}
+    header{flex-direction:column;align-items:flex-start;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header>
+    <div class="title-block">
+      <h1>Frota parada</h1>
+      <p>Controle diário — Loc Frota</p>
+    </div>
+    <div class="header-meta">
+      <div><span class="dot" id="status-dot"></span><span id="last-update">Carregando...</span></div>
+      <button id="refresh-btn" onclick="loadData()">Atualizar agora</button>
+    </div>
+  </header>
+
+  <div class="road-stripe"></div>
+
+  <div class="kpis" id="kpi-strip"></div>
+
+  <div class="filters">
+    <input type="text" id="search-input" placeholder="Buscar placa, analista, modelo...">
+    <select id="status-filter">
+      <option value="">Todos os status</option>
+      <option value="critico">Crítico</option>
+      <option value="atencao">Atenção</option>
+      <option value="normal">Normal</option>
+    </select>
+  </div>
+
+  <div class="table-card">
+    <div id="table-container">
+      <div class="empty-state">Carregando dados...</div>
+    </div>
+  </div>
+
+  <footer>Atualiza automaticamente a cada 5 minutos · Loc Frota</footer>
+
+</div>
+
+<script>
+  /* =========================================================
+     PASSO 1: cole aqui a URL do seu CSV publicado (Google
+     Sheets: Arquivo > Compartilhar > Publicar na web > escolha
+     a aba do relatório > formato CSV > copiar link)
+     ========================================================= */
+  const CSV_URL = "https://docs.google.com/spreadsheets/d/1ZSpWWhE-E0obTfbfH_Xe3ip4hDLi_SBileRMCaia1Jc/gviz/tq?tqx=out:csv&gid=1049881908";
+
+  const REFRESH_MS = 5 * 60 * 1000;
+  let rawRows = [];
+  let headers = [];
+  let sortState = { col: null, dir: 1 };
+
+  function parseCSV(text){
+    const rows = [];
+    let row = [], field = "", inQuotes = false;
+    for(let i=0;i<text.length;i++){
+      const c = text[i], next = text[i+1];
+      if(inQuotes){
+        if(c === '"' && next === '"'){ field += '"'; i++; }
+        else if(c === '"'){ inQuotes = false; }
+        else { field += c; }
+      } else {
+        if(c === '"'){ inQuotes = true; }
+        else if(c === ','){ row.push(field); field = ""; }
+        else if(c === '\n'){ row.push(field); rows.push(row); row = []; field = ""; }
+        else if(c === '\r'){ /* skip */ }
+        else { field += c; }
+      }
+    }
+    if(field.length || row.length){ row.push(field); rows.push(row); }
+    return rows.filter(r => r.some(v => v.trim() !== ""));
+  }
+
+  function findColumn(names){
+    return headers.find(h => names.some(n => h.toLowerCase().includes(n)));
+  }
+
+  function classify(diasStr){
+    const dias = parseFloat(String(diasStr).replace(",", "."));
+    if(isNaN(dias)) return null;
+    if(dias >= 4) return "critico";
+    if(dias >= 2) return "atencao";
+    return "normal";
+  }
+
+  function render(){
+    const diasCol = findColumn(["dias parado", "dias"]);
+    const analistaCol = findColumn(["analista"]);
+    const statusColRaw = findColumn(["status"]);
+
+    let rows = rawRows.map(r => {
+      const obj = {};
+      headers.forEach((h,i) => obj[h] = r[i] ?? "");
+      let status = null;
+      if(statusColRaw){
+        const v = obj[statusColRaw].toLowerCase();
+        if(v.includes("crit")) status = "critico";
+        else if(v.includes("aten")) status = "atencao";
+        else if(v.includes("norm")) status = "normal";
+      }
+      if(!status && diasCol) status = classify(obj[diasCol]);
+      obj.__status = status;
+      return obj;
+    });
+
+    const search = document.getElementById("search-input").value.toLowerCase();
+    const statusFilter = document.getElementById("status-filter").value;
+
+    let filtered = rows.filter(r => {
+      const matchesSearch = !search || Object.values(r).some(v => String(v).toLowerCase().includes(search));
+      const matchesStatus = !statusFilter || r.__status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+
+    if(sortState.col){
+      filtered.sort((a,b) => {
+        const va = a[sortState.col], vb = b[sortState.col];
+        const na = parseFloat(String(va).replace(",", "."));
+        const nb = parseFloat(String(vb).replace(",", "."));
+        let cmp;
+        if(!isNaN(na) && !isNaN(nb)) cmp = na - nb;
+        else cmp = String(va).localeCompare(String(vb), 'pt-BR');
+        return cmp * sortState.dir;
+      });
+    }
+
+    renderKPIs(rows);
+    renderTable(filtered);
+  }
+
+  function renderKPIs(rows){
+    const total = rows.length;
+    const crit = rows.filter(r => r.__status === "critico").length;
+    const aten = rows.filter(r => r.__status === "atencao").length;
+    const norm = rows.filter(r => r.__status === "normal").length;
+
+    const strip = document.getElementById("kpi-strip");
+    strip.innerHTML = `
+      <div class="kpi-card total"><div class="kpi-label">Total parados</div><div class="kpi-value">${total}</div></div>
+      <div class="kpi-card critico"><div class="kpi-label">Crítico (4+ dias)</div><div class="kpi-value">${crit}</div></div>
+      <div class="kpi-card atencao"><div class="kpi-label">Atenção (2-3 dias)</div><div class="kpi-value">${aten}</div></div>
+      <div class="kpi-card normal"><div class="kpi-label">Normal (0-1 dia)</div><div class="kpi-value">${norm}</div></div>
+    `;
+  }
+
+  function renderTable(rows){
+    const container = document.getElementById("table-container");
+    if(!rows.length){
+      container.innerHTML = '<div class="empty-state">Nenhum registro encontrado.</div>';
+      return;
+    }
+
+    let thead = "<thead><tr>";
+    headers.forEach(h => thead += `<th onclick="sortBy('${h}')">${h}${sortState.col===h ? (sortState.dir===1?' \u2191':' \u2193') : ''}</th>`);
+    thead += "</tr></thead>";
+
+    let tbody = "<tbody>";
+    rows.forEach(r => {
+      const rowClass = r.__status ? `row-${r.__status}` : "";
+      tbody += `<tr class="${rowClass}">`;
+      headers.forEach(h => {
+        let val = r[h];
+        if(h.toLowerCase().includes("status") && r.__status){
+          const label = r.__status === "critico" ? "Crítico" : r.__status === "atencao" ? "Atenção" : "Normal";
+          val = `<span class="badge ${r.__status}">${label}</span>`;
+        }
+        tbody += `<td>${val}</td>`;
+      });
+      tbody += "</tr>";
+    });
+    tbody += "</tbody>";
+
+    container.innerHTML = `<table>${thead}${tbody}</table>`;
+  }
+
+  function sortBy(col){
+    if(sortState.col === col) sortState.dir *= -1;
+    else { sortState.col = col; sortState.dir = 1; }
+    render();
+  }
+
+  function setStatusDot(ok){
+    document.getElementById("status-dot").className = ok ? "dot" : "dot stale";
+  }
+
+  async function loadData(){
+    if(CSV_URL.includes("COLE_AQUI")){
+      document.getElementById("table-container").innerHTML =
+        '<div class="error-state">Configure a variável CSV_URL no início do arquivo com o link do seu Google Sheets publicado.</div>';
+      document.getElementById("last-update").textContent = "Não configurado";
+      setStatusDot(false);
+      return;
+    }
+    try{
+      const res = await fetch(CSV_URL + (CSV_URL.includes("?") ? "&" : "?") + "t=" + Date.now());
+      if(!res.ok) throw new Error("Falha ao buscar CSV");
+      const text = await res.text();
+      const parsed = parseCSV(text);
+      headers = parsed[0].map(h => h.trim());
+      rawRows = parsed.slice(1);
+      render();
+      document.getElementById("last-update").textContent = "Atualizado às " + new Date().toLocaleTimeString('pt-BR');
+      setStatusDot(true);
+    } catch(err){
+      document.getElementById("table-container").innerHTML =
+        '<div class="error-state">Erro ao carregar dados. Verifique se o link do CSV está correto e publicado.</div>';
+      document.getElementById("last-update").textContent = "Erro na última tentativa";
+      setStatusDot(false);
+    }
+  }
+
+  document.getElementById("search-input").addEventListener("input", render);
+  document.getElementById("status-filter").addEventListener("change", render);
+
+  loadData();
+  setInterval(loadData, REFRESH_MS);
+</script>
+
+</body>
+</html>
