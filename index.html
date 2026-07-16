@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+t<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -175,7 +175,18 @@
     overflow-x:auto;
   }
 
-  table{width:100%;border-collapse:collapse;font-size:12px;min-width:950px;}
+  table{width:100%;border-collapse:collapse;font-size:12px;min-width:1000px;table-layout:fixed;}
+
+  th:nth-child(1),td:nth-child(1){width:7%;}
+  th:nth-child(2),td:nth-child(2){width:6%;}
+  th:nth-child(3),td:nth-child(3){width:11%;}
+  th:nth-child(4),td:nth-child(4){width:9%;}
+  th:nth-child(5),td:nth-child(5){width:5%;}
+  th:nth-child(6),td:nth-child(6){width:20%;}
+  th:nth-child(7),td:nth-child(7){width:8%;}
+  th:nth-child(8),td:nth-child(8){width:7%;}
+  th:nth-child(9),td:nth-child(9){width:23%;}
+  th:nth-child(10),td:nth-child(10){width:4%;}
 
   tbody td{max-width:180px;overflow:hidden;text-overflow:ellipsis;}
   tbody td.wrap-cell{
@@ -184,8 +195,9 @@
     -webkit-line-clamp:2;
     -webkit-box-orient:vertical;
     overflow:hidden;
-    max-width:220px;
     line-height:1.35;
+    height:2.7em;
+    vertical-align:top;
   }
 
   .bucket-strip{
