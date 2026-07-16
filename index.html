@@ -193,6 +193,45 @@
   .bucket-card .bucket-label{font-size:11px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px;}
   .bucket-card .bucket-value{font-family:'Oswald',sans-serif;font-size:20px;font-weight:600;}
 
+  .analyst-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    gap:10px;
+    margin-bottom:24px;
+  }
+
+  .analyst-card{
+    background:var(--bg-card);
+    border:1px solid var(--border-line);
+    border-radius:6px;
+    padding:12px 14px;
+    text-decoration:none;
+    color:var(--text-primary);
+    display:block;
+    transition:background 0.15s;
+  }
+
+  .analyst-card:hover{background:var(--bg-card-hover);border-color:var(--accent);}
+
+  .analyst-card .a-name{font-size:13px;font-weight:500;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+  .analyst-card .a-count{font-family:'Oswald',sans-serif;font-size:22px;font-weight:600;}
+
+  .analyst-card .a-count.has-critico{color:var(--critico);}
+
+  .back-link{
+    display:inline-block;
+    margin-bottom:16px;
+    color:var(--text-secondary);
+    text-decoration:none;
+    font-size:13px;
+    border:1px solid var(--border-line);
+    padding:6px 12px;
+    border-radius:4px;
+  }
+
+  .back-link:hover{background:var(--bg-card-hover);}
+
   thead th{
     text-align:left;
     padding:12px 16px;
@@ -263,8 +302,8 @@
 
   <header>
     <div class="title-block">
-      <h1>Frota parada</h1>
-      <p>Controle diário — Loc Frota</p>
+      <h1 id="page-title">Frota parada</h1>
+      <p id="page-subtitle">Controle diário — Loc Frota</p>
     </div>
     <div class="header-meta">
       <div><span class="dot" id="status-dot"></span><span id="last-update">Carregando...</span></div>
@@ -273,6 +312,8 @@
   </header>
 
   <div class="road-stripe"></div>
+
+  <div id="analyst-directory"></div>
 
   <div class="kpis" id="kpi-strip"></div>
 
@@ -320,6 +361,8 @@
   let rawRows = [];
   let headers = [];
   let sortState = { col: null, dir: 1 };
+  const urlParams = new URLSearchParams(location.search);
+  const analistaParam = urlParams.get('analista');
 
   function parseCSV(text){
     const rows = [];
@@ -390,8 +433,13 @@
     const search = document.getElementById("search-input").value.toLowerCase();
     const statusFilter = document.getElementById("status-filter").value;
     const bucketFilter = document.getElementById("bucket-filter").value;
+    const analistaCol2 = findColumn(["responsavel", "responsável", "analista"]);
 
-    let filtered = rows.filter(r => {
+    const scopedRows = analistaParam
+      ? rows.filter(r => analistaCol2 && String(r[analistaCol2]).trim().toLowerCase() === analistaParam.trim().toLowerCase())
+      : rows;
+
+    let filtered = scopedRows.filter(r => {
       const matchesSearch = !search || Object.values(r).some(v => String(v).toLowerCase().includes(search));
       const matchesStatus = !statusFilter || r.__status === statusFilter;
       const matchesBucket = !bucketFilter || r.__bucket === bucketFilter;
@@ -410,9 +458,49 @@
       });
     }
 
-    renderKPIs(rows);
-    renderBuckets(rows);
+    renderKPIs(scopedRows);
+    renderBuckets(scopedRows);
     renderTable(filtered);
+    renderDirectory(rows, analistaCol2);
+    renderTitle();
+  }
+
+  function renderTitle(){
+    const titleEl = document.getElementById("page-title");
+    const subtitleEl = document.getElementById("page-subtitle");
+    if(analistaParam){
+      titleEl.textContent = analistaParam;
+      subtitleEl.innerHTML = '<a href="' + location.pathname + '" class="back-link" style="margin:0;display:inline;">← Ver todos os analistas</a>';
+    } else {
+      titleEl.textContent = "Frota parada";
+      subtitleEl.textContent = "Controle diário — Loc Frota";
+    }
+  }
+
+  function renderDirectory(rows, analistaCol2){
+    const container = document.getElementById("analyst-directory");
+    if(analistaParam || !analistaCol2){ container.innerHTML = ""; return; }
+
+    const counts = {};
+    rows.forEach(r => {
+      const name = String(r[analistaCol2]).trim();
+      if(!name) return;
+      if(!counts[name]) counts[name] = { total: 0, critico: 0 };
+      counts[name].total++;
+      if(r.__status === "critico") counts[name].critico++;
+    });
+
+    const names = Object.keys(counts).sort((a,b) => counts[b].total - counts[a].total);
+    if(!names.length){ container.innerHTML = ""; return; }
+
+    const cards = names.map(name => {
+      const c = counts[name];
+      const cls = c.critico > 0 ? "has-critico" : "";
+      const url = location.pathname + "?analista=" + encodeURIComponent(name);
+      return `<a class="analyst-card" href="${url}"><div class="a-name">${name}</div><div class="a-count ${cls}">${c.total}</div></a>`;
+    }).join("");
+
+    container.innerHTML = `<div class="analyst-grid">${cards}</div>`;
   }
 
   function renderBuckets(rows){
