@@ -424,15 +424,6 @@
       </div>
       <div class="results-count" id="results-count"></div>
     </div>
-
-    <div class="filter-controls-row">
-      <div class="fdrop" id="fdrop-analista" data-filter="analista">
-        <button class="fdrop-btn" type="button">
-          <span class="fdrop-icon">👤</span><span class="fdrop-label">Analista</span><span class="fdrop-val" id="val-analista">Todos</span><span class="fdrop-caret">▾</span>
-        </button>
-        <div class="fdrop-menu" id="menu-analista"></div>
-      </div>
-    </div>
   </div>
 
   <div id="table-container" class="cards-container">
@@ -455,7 +446,7 @@
   let rawRows = [];
   let headers = [];
   let sortState = { mode: "dias-desc" };
-  let filterState = { status: "", bucket: "", analista: "" };
+  let filterState = { status: "", bucket: "" };
   const urlParams = new URLSearchParams(location.search);
   const analistaParam = urlParams.get('analista');
 
@@ -550,8 +541,7 @@
       const matchesSearch = !search || Object.values(r).some(v => String(v).toLowerCase().includes(search));
       const matchesStatus = !statusFilter || r.__status === statusFilter;
       const matchesBucket = !bucketFilter || r.__bucket === bucketFilter;
-      const matchesAnalistaDrop = !filterState.analista || (analistaCol2 && String(r[analistaCol2]).trim() === filterState.analista);
-      return matchesSearch && matchesStatus && matchesBucket && matchesAnalistaDrop;
+      return matchesSearch && matchesStatus && matchesBucket;
     });
 
     if(sortState.mode === "dias-asc"){
@@ -565,7 +555,6 @@
     renderCards(filtered);
     renderDirectory(rows, analistaCol2);
     renderTitle();
-    populateAnalistaMenu(rows, analistaCol2);
     updateResultsCount(filtered.length);
     document.getElementById("search-clear").style.display = search ? "block" : "none";
   }
@@ -573,19 +562,6 @@
   function updateResultsCount(n){
     const el = document.getElementById("results-count");
     el.textContent = n + (n === 1 ? " veículo encontrado" : " veículos encontrados");
-  }
-
-  let analistaMenuBuilt = false;
-  function populateAnalistaMenu(rows, analistaCol2){
-    if(analistaMenuBuilt || !analistaCol2) return;
-    const names = Array.from(new Set(rows.map(r => String(r[analistaCol2]).trim()).filter(Boolean))).sort((a,b) => a.localeCompare(b,'pt-BR'));
-    if(!names.length) return;
-    const menu = document.getElementById("menu-analista");
-    let html = `<div class="fdrop-option selected" data-value="">Todos</div>`;
-    html += names.map(n => `<div class="fdrop-option" data-value="${n.replace(/"/g,'&quot;')}">${n}</div>`).join("");
-    menu.innerHTML = html;
-    bindDropdownOptions(document.getElementById("fdrop-analista"), "analista", "val-analista", (v) => { filterState.analista = v; render(); });
-    analistaMenuBuilt = true;
   }
 
   function renderTitle(){
