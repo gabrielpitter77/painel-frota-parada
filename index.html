@@ -111,42 +111,6 @@
     opacity:0.9;
   }
 
-  /* ---------- KPI strip ---------- */
-  .kpis{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-    gap:12px;
-    margin-bottom:28px;
-  }
-
-  .kpi-card{
-    background:var(--bg-card);
-    border:1px solid var(--border-line);
-    border-radius:6px;
-    padding:16px 18px;
-    border-left:3px solid var(--border-line);
-  }
-
-  .kpi-card.critico{border-left-color:var(--critico);}
-  .kpi-card.atencao{border-left-color:var(--atencao);}
-  .kpi-card.normal{border-left-color:var(--normal);}
-  .kpi-card.total{border-left-color:var(--accent);}
-
-  .kpi-label{
-    font-size:12px;
-    color:var(--text-secondary);
-    text-transform:uppercase;
-    letter-spacing:0.5px;
-    margin-bottom:8px;
-  }
-
-  .kpi-value{
-    font-family:'Oswald',sans-serif;
-    font-size:32px;
-    font-weight:600;
-  }
-
-
   /* ---------- Cards de veículo ---------- */
   .cards-container{display:flex;flex-direction:column;gap:12px;}
 
@@ -194,24 +158,6 @@
   }
 
   .vc-footer span{color:var(--text-secondary);}
-
-  .bucket-strip{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
-    gap:10px;
-    margin-bottom:20px;
-  }
-
-  .bucket-card{
-    background:var(--bg-card);
-    border:1px solid var(--border-line);
-    border-radius:6px;
-    padding:10px 14px;
-    text-align:center;
-  }
-
-  .bucket-card .bucket-label{font-size:11px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px;}
-  .bucket-card .bucket-value{font-family:'Oswald',sans-serif;font-size:20px;font-weight:600;}
 
   .analyst-grid{
     display:grid;
@@ -399,31 +345,15 @@
   .fdrop-option:hover{background:#243761;}
   .fdrop-option.selected{background:rgba(245,166,35,0.14);color:var(--accent);}
 
-  .clear-filters-btn{
-    height:44px;
-    padding:0 16px;
-    background:transparent;
-    border:1px solid #314A7A;
-    border-radius:10px;
-    color:var(--text-secondary);
-    font-family:'Inter',sans-serif;
-    font-size:13px;
-    cursor:pointer;
-    white-space:nowrap;
-    transition:background 0.15s, color 0.15s, border-color 0.15s;
-  }
-
-  .clear-filters-btn:hover{background:rgba(226,75,74,0.12);color:var(--critico);border-color:var(--critico);}
-
   @media (max-width:900px){
     .filter-controls-row{gap:10px;}
-    .fdrop-btn, .clear-filters-btn{padding:0 12px;}
+    .fdrop-btn{padding:0 12px;}
   }
 
   @media (max-width:640px){
     .search-wrap{width:100%;}
     .filter-controls-row{flex-direction:column;align-items:stretch;}
-    .fdrop-btn, .clear-filters-btn{width:100%;justify-content:space-between;}
+    .fdrop-btn{width:100%;justify-content:space-between;}
     .fdrop-menu{left:0;right:0;min-width:auto;}
   }
 
@@ -485,10 +415,6 @@
 
   <div id="analyst-directory"></div>
 
-  <div class="kpis" id="kpi-strip"></div>
-
-  <div class="bucket-strip" id="bucket-strip"></div>
-
   <div class="filter-bar">
     <div class="filter-top-row">
       <div class="search-wrap">
@@ -506,47 +432,6 @@
         </button>
         <div class="fdrop-menu" id="menu-analista"></div>
       </div>
-
-      <div class="fdrop" id="fdrop-status" data-filter="status">
-        <button class="fdrop-btn" type="button">
-          <span class="fdrop-icon">⚠️</span><span class="fdrop-label">Status</span><span class="fdrop-val" id="val-status">Todos</span><span class="fdrop-caret">▾</span>
-        </button>
-        <div class="fdrop-menu" id="menu-status">
-          <div class="fdrop-option selected" data-value="">Todos</div>
-          <div class="fdrop-option" data-value="critico">Crítico</div>
-          <div class="fdrop-option" data-value="atencao">Atenção</div>
-          <div class="fdrop-option" data-value="normal">Normal</div>
-        </div>
-      </div>
-
-      <div class="fdrop" id="fdrop-faixa" data-filter="bucket">
-        <button class="fdrop-btn" type="button">
-          <span class="fdrop-icon">📅</span><span class="fdrop-label">Faixa</span><span class="fdrop-val" id="val-faixa">Todas</span><span class="fdrop-caret">▾</span>
-        </button>
-        <div class="fdrop-menu" id="menu-faixa">
-          <div class="fdrop-option selected" data-value="">Todas</div>
-          <div class="fdrop-option" data-value="0-1">0-1 dia</div>
-          <div class="fdrop-option" data-value="2-3">2-3 dias</div>
-          <div class="fdrop-option" data-value="4-10">4-10 dias</div>
-          <div class="fdrop-option" data-value="11-20">11-20 dias</div>
-          <div class="fdrop-option" data-value="21-30">21-30 dias</div>
-          <div class="fdrop-option" data-value="31-60">31-60 dias</div>
-          <div class="fdrop-option" data-value="61+">Acima de 60 dias</div>
-        </div>
-      </div>
-
-      <div class="fdrop" id="fdrop-ordenar" data-filter="sort">
-        <button class="fdrop-btn" type="button">
-          <span class="fdrop-icon">⇅</span><span class="fdrop-label">Ordenar</span><span class="fdrop-val" id="val-ordenar">Maior tempo parado</span><span class="fdrop-caret">▾</span>
-        </button>
-        <div class="fdrop-menu" id="menu-ordenar">
-          <div class="fdrop-option selected" data-value="dias-desc">Maior tempo parado</div>
-          <div class="fdrop-option" data-value="dias-asc">Menor tempo parado</div>
-          <div class="fdrop-option" data-value="nome-asc">Responsável (A-Z)</div>
-        </div>
-      </div>
-
-      <button class="clear-filters-btn" id="clear-filters" type="button">🗑 Limpar filtros</button>
     </div>
   </div>
 
@@ -624,7 +509,19 @@
     const analistaCol = findColumn(["analista"]);
     const statusColRaw = findColumn(["status"]);
 
-    let rows = rawRows.map(r => {
+    const respColRaw = findColumn(["responsavel", "responsável", "analista"]);
+
+    let rows = rawRows
+      .filter(r => {
+        if(!respColRaw) return true;
+        const idx = headers.indexOf(respColRaw);
+        const val = String(r[idx] ?? "").trim();
+        if(!val) return false;
+        if(/total/i.test(val)) return false;
+        if(/^[0-9.,]+$/.test(val)) return false;
+        return true;
+      })
+      .map(r => {
       const obj = {};
       headers.forEach((h,i) => obj[h] = r[i] ?? "");
       let status = null;
@@ -665,8 +562,6 @@
       filtered.sort((a,b) => (parseFloat(String(b[diasCol]).replace(",",".")) || 0) - (parseFloat(String(a[diasCol]).replace(",",".")) || 0));
     }
 
-    renderKPIs(scopedRows);
-    renderBuckets(scopedRows);
     renderCards(filtered);
     renderDirectory(rows, analistaCol2);
     renderTitle();
@@ -729,36 +624,6 @@
     }).join("");
 
     container.innerHTML = `<div class="analyst-grid">${cards}</div>`;
-  }
-
-  function renderBuckets(rows){
-    const labels = {
-      "4-10": "4 a 10 dias",
-      "11-20": "11 a 20 dias",
-      "21-30": "21 a 30 dias",
-      "31-60": "31 a 60 dias",
-      "61+": "Acima de 60 dias"
-    };
-    const strip = document.getElementById("bucket-strip");
-    strip.innerHTML = Object.keys(labels).map(key => {
-      const count = rows.filter(r => r.__bucket === key).length;
-      return `<div class="bucket-card"><div class="bucket-label">${labels[key]}</div><div class="bucket-value">${count}</div></div>`;
-    }).join("");
-  }
-
-  function renderKPIs(rows){
-    const total = rows.length;
-    const crit = rows.filter(r => r.__status === "critico").length;
-    const aten = rows.filter(r => r.__status === "atencao").length;
-    const norm = rows.filter(r => r.__status === "normal").length;
-
-    const strip = document.getElementById("kpi-strip");
-    strip.innerHTML = `
-      <div class="kpi-card total"><div class="kpi-label">Total parados</div><div class="kpi-value">${total}</div></div>
-      <div class="kpi-card critico"><div class="kpi-label">Crítico (4+ dias)</div><div class="kpi-value">${crit}</div></div>
-      <div class="kpi-card atencao"><div class="kpi-label">Atenção (2-3 dias)</div><div class="kpi-value">${aten}</div></div>
-      <div class="kpi-card normal"><div class="kpi-label">Normal (0-1 dia)</div><div class="kpi-value">${norm}</div></div>
-    `;
   }
 
   function renderCards(rows){
@@ -865,9 +730,6 @@
     });
   }
 
-  bindDropdownOptions(document.getElementById("fdrop-status"), "status", "val-status", (v) => { filterState.status = v; render(); });
-  bindDropdownOptions(document.getElementById("fdrop-faixa"), "bucket", "val-faixa", (v) => { filterState.bucket = v; render(); });
-  bindDropdownOptions(document.getElementById("fdrop-ordenar"), "sort", "val-ordenar", (v) => { sortState.mode = v; render(); });
 
   document.addEventListener("click", () => closeAllDropdowns());
 
@@ -875,22 +737,6 @@
 
   document.getElementById("search-clear").addEventListener("click", () => {
     document.getElementById("search-input").value = "";
-    render();
-  });
-
-  document.getElementById("clear-filters").addEventListener("click", () => {
-    filterState = { status: "", bucket: "", analista: "" };
-    sortState.mode = "dias-desc";
-    document.getElementById("search-input").value = "";
-    document.querySelectorAll('.fdrop-menu').forEach(menu => {
-      menu.querySelectorAll('.fdrop-option').forEach(o => o.classList.remove('selected'));
-      const first = menu.querySelector('.fdrop-option');
-      if(first) first.classList.add('selected');
-    });
-    document.getElementById("val-status").textContent = "Todos";
-    document.getElementById("val-faixa").textContent = "Todas";
-    document.getElementById("val-ordenar").textContent = "Maior tempo parado";
-    document.getElementById("val-analista").textContent = "Todos";
     render();
   });
 
