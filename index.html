@@ -167,30 +167,63 @@
   .filters input{flex:1;min-width:200px;}
   .filters input:focus, .filters select:focus{outline:1px solid var(--accent);}
 
-  /* ---------- Table ---------- */
-  .table-card{
+  /* ---------- Cards de veículo ---------- */
+  .cards-container{display:flex;flex-direction:column;gap:12px;}
+
+  .vehicle-card{
     background:var(--bg-card);
     border:1px solid var(--border-line);
-    border-radius:6px;
-    overflow-x:auto;
+    border-radius:8px;
+    padding:16px 18px;
+    border-left:4px solid var(--border-line);
   }
 
-  table{width:1550px;border-collapse:collapse;font-size:12px;table-layout:fixed;}
+  .vehicle-card.row-critico{border-left-color:var(--critico);}
+  .vehicle-card.row-atencao{border-left-color:var(--atencao);}
+  .vehicle-card.row-normal{border-left-color:var(--normal);}
 
-  th:nth-child(1),td:nth-child(1){width:130px;}
-  th:nth-child(2),td:nth-child(2){width:85px;}
-  th:nth-child(3),td:nth-child(3){width:170px;}
-  th:nth-child(4),td:nth-child(4){width:160px;}
-  th:nth-child(5),td:nth-child(5){width:80px;}
-  th:nth-child(6),td:nth-child(6){width:260px;}
-  th:nth-child(7),td:nth-child(7){width:110px;}
-  th:nth-child(8),td:nth-child(8){width:110px;}
-  th:nth-child(9),td:nth-child(9){width:300px;}
-  th:nth-child(10),td:nth-child(10){width:140px;}
+  .vc-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+    margin-bottom:10px;
+  }
 
-  tbody td{white-space:normal;word-wrap:break-word;vertical-align:top;}
-  tbody td.wrap-cell{white-space:normal;word-wrap:break-word;vertical-align:top;}
+  .vc-name{color:var(--text-primary);font-size:15px;font-weight:600;}
+  .vc-sub{color:var(--text-secondary);font-size:12px;margin-top:2px;}
 
+  .vc-right{text-align:right;flex-shrink:0;}
+  .vc-dias{font-family:'Oswald',sans-serif;color:var(--accent);font-size:18px;font-weight:600;margin-top:4px;}
+
+  .vc-field{margin-bottom:10px;}
+  .vc-field:last-of-type{margin-bottom:0;}
+  .vc-label{color:var(--text-secondary);font-size:11px;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:3px;}
+  .vc-label.solucao-label{color:var(--accent);font-weight:600;}
+  .vc-value{color:var(--text-primary);font-size:13px;line-height:1.4;}
+
+  .vc-footer{
+    display:flex;
+    gap:24px;
+    flex-wrap:wrap;
+    font-size:11px;
+    color:var(--text-muted);
+    border-top:1px solid var(--border-line);
+    padding-top:10px;
+    margin-top:12px;
+  }
+
+  .vc-footer span{color:var(--text-secondary);}
+
+  .sort-select{
+    background:var(--bg-card);
+    border:1px solid var(--border-line);
+    color:var(--text-primary);
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    padding:8px 12px;
+    border-radius:4px;
+  }
   .bucket-strip{
     display:grid;
     grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
@@ -247,33 +280,6 @@
   }
 
   .back-link:hover{background:var(--bg-card-hover);}
-
-  thead th{
-    text-align:left;
-    padding:8px 12px;
-    background:#20242A;
-    color:var(--text-secondary);
-    font-weight:500;
-    text-transform:uppercase;
-    font-size:10px;
-    letter-spacing:0.4px;
-    cursor:pointer;
-    white-space:nowrap;
-    border-bottom:1px solid var(--border-line);
-  }
-
-  thead th:hover{color:var(--text-primary);}
-
-  tbody td{
-    padding:6px 12px;
-    border-bottom:1px solid var(--border-line);
-  }
-
-  tbody tr{border-left:3px solid transparent;}
-  tbody tr:hover{background:var(--bg-card-hover);}
-  tbody tr.row-critico{border-left-color:var(--critico);}
-  tbody tr.row-atencao{border-left-color:var(--atencao);}
-  tbody tr.row-normal{border-left-color:var(--normal);}
 
   .badge{
     display:inline-block;
@@ -355,12 +361,15 @@
       <option value="31-60">31-60 dias</option>
       <option value="61+">Acima de 60 dias</option>
     </select>
+    <select id="sort-select" class="sort-select">
+      <option value="dias-desc">Mais dias parado primeiro</option>
+      <option value="dias-asc">Menos dias parado primeiro</option>
+      <option value="nome-asc">Responsável (A-Z)</option>
+    </select>
   </div>
 
-  <div class="table-card">
-    <div id="table-container">
-      <div class="empty-state">Carregando dados...</div>
-    </div>
+  <div id="table-container" class="cards-container">
+    <div class="empty-state">Carregando dados...</div>
   </div>
 
   <footer>Atualiza automaticamente a cada 5 minutos · Loc Frota</footer>
@@ -378,7 +387,7 @@
   const REFRESH_MS = 5 * 60 * 1000;
   let rawRows = [];
   let headers = [];
-  let sortState = { col: null, dir: 1 };
+  let sortState = { mode: "dias-desc" };
   const urlParams = new URLSearchParams(location.search);
   const analistaParam = urlParams.get('analista');
 
@@ -464,21 +473,17 @@
       return matchesSearch && matchesStatus && matchesBucket;
     });
 
-    if(sortState.col){
-      filtered.sort((a,b) => {
-        const va = a[sortState.col], vb = b[sortState.col];
-        const na = parseFloat(String(va).replace(",", "."));
-        const nb = parseFloat(String(vb).replace(",", "."));
-        let cmp;
-        if(!isNaN(na) && !isNaN(nb)) cmp = na - nb;
-        else cmp = String(va).localeCompare(String(vb), 'pt-BR');
-        return cmp * sortState.dir;
-      });
+    if(sortState.mode === "dias-asc"){
+      filtered.sort((a,b) => (parseFloat(String(a[diasCol]).replace(",",".")) || 0) - (parseFloat(String(b[diasCol]).replace(",",".")) || 0));
+    } else if(sortState.mode === "nome-asc"){
+      filtered.sort((a,b) => String(a[analistaCol2]).localeCompare(String(b[analistaCol2]), 'pt-BR'));
+    } else {
+      filtered.sort((a,b) => (parseFloat(String(b[diasCol]).replace(",",".")) || 0) - (parseFloat(String(a[diasCol]).replace(",",".")) || 0));
     }
 
     renderKPIs(scopedRows);
     renderBuckets(scopedRows);
-    renderTable(filtered);
+    renderCards(filtered);
     renderDirectory(rows, analistaCol2);
     renderTitle();
   }
@@ -551,68 +556,51 @@
     `;
   }
 
-  function renderTable(rows){
+  function renderCards(rows){
     const container = document.getElementById("table-container");
     if(!rows.length){
       container.innerHTML = '<div class="empty-state">Nenhum registro encontrado.</div>';
       return;
     }
 
-    function cleanLabel(h){
-      const labelMap = {
-        "responsavel":"Responsável",
-        "placa":"Placa",
-        "modelo":"Modelo",
-        "cliente":"Cliente",
-        "dias parado":"Dias parado",
-        "pendencia":"Pendência",
-        "status atual":"Status atual",
-        "veiculo reserva":"Veículo reserva",
-        "solucao":"Solução",
-        "fornecedor":"Fornecedor"
-      };
-      const normalized = h.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
-      for(const key in labelMap){
-        if(normalized.endsWith(key)) return labelMap[key];
-      }
-      return h;
-    }
+    const placaCol = findColumn(["placa"]);
+    const modeloCol = findColumn(["modelo"]);
+    const clienteCol = findColumn(["cliente"]);
+    const diasCol2 = findColumn(["dias parado", "dias"]);
+    const pendCol = findColumn(["pendencia", "pendência"]);
+    const statusCol = findColumn(["status atual", "status"]);
+    const reservaCol = findColumn(["veiculo reserva", "veículo reserva", "reserva"]);
+    const solucaoCol = findColumn(["solucao", "solução"]);
+    const fornecedorCol = findColumn(["fornecedor"]);
+    const respCol = findColumn(["responsavel", "responsável", "analista"]);
 
-    let thead = "<thead><tr>";
-    headers.forEach(h => {
-      const label = cleanLabel(h);
-      thead += `<th onclick="sortBy('${h}')" title="${h}">${label}${sortState.col===h ? (sortState.dir===1?' \u2191':' \u2193') : ''}</th>`;
-    });
-    thead += "</tr></thead>";
+    const statusLabel = { critico: "Crítico", atencao: "Atenção", normal: "Normal" };
 
-    let tbody = "<tbody>";
-    rows.forEach(r => {
+    container.innerHTML = rows.map(r => {
       const rowClass = r.__status ? `row-${r.__status}` : "";
-      tbody += `<tr class="${rowClass}">`;
-      headers.forEach(h => {
-        let val = r[h];
-        const isLongText = /pend|solu|obs|situa/i.test(h);
-        if(h.toLowerCase().includes("status") && r.__status){
-          const label = r.__status === "critico" ? "Crítico" : r.__status === "atencao" ? "Atenção" : "Normal";
-          val = `<span class="badge ${r.__status}">${label}</span>`;
-          tbody += `<td>${val}</td>`;
-        } else if(isLongText){
-          tbody += `<td class="wrap-cell" title="${String(val).replace(/"/g,'&quot;')}">${val}</td>`;
-        } else {
-          tbody += `<td title="${String(val).replace(/"/g,'&quot;')}">${val}</td>`;
-        }
-      });
-      tbody += "</tr>";
-    });
-    tbody += "</tbody>";
-
-    container.innerHTML = `<table>${thead}${tbody}</table>`;
-  }
-
-  function sortBy(col){
-    if(sortState.col === col) sortState.dir *= -1;
-    else { sortState.col = col; sortState.dir = 1; }
-    render();
+      const dias = diasCol2 ? r[diasCol2] : "";
+      return `
+        <div class="vehicle-card ${rowClass}">
+          <div class="vc-head">
+            <div>
+              <div class="vc-name">${respCol ? r[respCol] : ""}</div>
+              <div class="vc-sub">${placaCol ? r[placaCol] : ""}${modeloCol ? " · " + r[modeloCol] : ""}</div>
+            </div>
+            <div class="vc-right">
+              ${r.__status ? `<span class="badge ${r.__status}">${statusLabel[r.__status]}</span>` : ""}
+              <div class="vc-dias">${dias}${dias !== "" ? " dias" : ""}</div>
+            </div>
+          </div>
+          ${clienteCol ? `<div class="vc-field"><div class="vc-label">Cliente</div><div class="vc-value">${r[clienteCol]}</div></div>` : ""}
+          ${pendCol ? `<div class="vc-field"><div class="vc-label">Pendência</div><div class="vc-value">${r[pendCol]}</div></div>` : ""}
+          ${solucaoCol ? `<div class="vc-field"><div class="vc-label solucao-label">Solução</div><div class="vc-value">${r[solucaoCol]}</div></div>` : ""}
+          <div class="vc-footer">
+            ${statusCol ? `<div>Status atual: <span>${r[statusCol]}</span></div>` : ""}
+            ${reservaCol ? `<div>Veículo reserva: <span>${r[reservaCol]}</span></div>` : ""}
+            ${fornecedorCol ? `<div>Fornecedor: <span>${r[fornecedorCol]}</span></div>` : ""}
+          </div>
+        </div>`;
+    }).join("");
   }
 
   function setStatusDot(ok){
@@ -648,6 +636,7 @@
   document.getElementById("search-input").addEventListener("input", render);
   document.getElementById("status-filter").addEventListener("change", render);
   document.getElementById("bucket-filter").addEventListener("change", render);
+  document.getElementById("sort-select").addEventListener("change", (e) => { sortState.mode = e.target.value; render(); });
 
   loadData();
   setInterval(loadData, REFRESH_MS);
