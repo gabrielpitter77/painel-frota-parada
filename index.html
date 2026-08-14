@@ -46,11 +46,19 @@
   .live-dot{width:7px; height:7px; border-radius:50%; background:var(--normal); flex-shrink:0; box-shadow:0 0 0 0 rgba(46,211,166,0.6); animation:pulse-dot 2s infinite;}
   .live-dot.stale{background:var(--critico); animation:none;}
   @keyframes pulse-dot{0%{box-shadow:0 0 0 0 rgba(46,211,166,0.5);}70%{box-shadow:0 0 0 6px rgba(46,211,166,0);}100%{box-shadow:0 0 0 0 rgba(46,211,166,0);}}
-  #refresh-btn{
+  #refresh-btn, .btn-export{
     background:var(--panel-2); border:1px solid var(--border); border-radius:6px;
     color:var(--text); font-family:'IBM Plex Mono'; font-size:12px; padding:8px 14px; cursor:pointer;
   }
-  #refresh-btn:hover{background:#1A2030; border-color:var(--blue);}
+  #refresh-btn:hover, .btn-export:hover{background:#1A2030; border-color:var(--blue);}
+
+  @media print{
+    *{ -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    body{background:var(--bg);}
+    #refresh-btn, .btn-export, .filter-bar, #search-clear{display:none !important;}
+    .panel::before, .panel::after, .vehicle-card::before, .vehicle-card::after{display:none;}
+    @page{ margin: 10mm; }
+  }
 
   .analyst-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; margin-bottom:22px;}
   .analyst-card{
@@ -157,6 +165,8 @@
       <span class="live-dot" id="status-dot"></span>
       <span id="last-update">Carregando...</span>
       <button id="refresh-btn" onclick="loadData()">Atualizar agora</button>
+      <button id="btn-csv" class="btn-export">📥 Exportar CSV</button>
+      <button id="btn-pdf" class="btn-export">📄 Exportar PDF</button>
     </div>
   </header>
 
@@ -187,6 +197,7 @@
   const REFRESH_MS = 5 * 60 * 1000;
   let rawRows = [];
   let headers = [];
+  let linhasFiltradasAtuais = [];
   let sortState = { mode: "dias-desc" };
   let filterState = { status: "", bucket: "" };
   const urlParams = new URLSearchParams(location.search);
@@ -294,6 +305,7 @@
       filtered.sort((a,b) => (parseFloat(String(b[diasCol]).replace(",",".")) || 0) - (parseFloat(String(a[diasCol]).replace(",",".")) || 0));
     }
 
+    linhasFiltradasAtuais = filtered;
     renderCards(filtered);
     renderDirectory(rows, analistaCol2);
     renderTitle();
@@ -430,6 +442,59 @@
     document.getElementById("search-input").value = "";
     render();
   });
+
+  function exportarCSV(){
+    const respCol = findColumn(["responsavel", "responsável", "analista"]);
+    const placaCol = findColumn(["placa"]);
+    const modeloCol = findColumn(["modelo"]);
+    const clienteCol = findColumn(["cliente"]);
+    const fornecedorCol = findColumn(["fornecedor"]);
+    const diasCol = findColumn(["dias parado", "dias"]);
+    const pendCol = findColumn(["pendencia", "pendência"]);
+    const solucaoCol = findColumn(["solucao", "solução"]);
+    const statusCol = findColumn(["status atual", "status"]);
+    const reservaCol = findColumn(["veiculo reserva", "veículo reserva", "reserva"]);
+    const prazoCol = findColumn(["prazo liberacao", "prazo liberação", "prazo"]);
+
+    const colunas = [
+      { titulo: 'Analista', col: respCol },
+      { titulo: 'Placa', col: placaCol },
+      { titulo: 'Modelo', col: modeloCol },
+      { titulo: 'Cliente', col: clienteCol },
+      { titulo: 'Fornecedor', col: fornecedorCol },
+      { titulo: 'Dias parado', col: diasCol },
+      { titulo: 'Pendência', col: pendCol },
+      { titulo: 'Solução', col: solucaoCol },
+      { titulo: 'Status atual', col: statusCol },
+      { titulo: 'Veículo reserva', col: reservaCol },
+      { titulo: 'Prazo de liberação', col: prazoCol },
+    ];
+
+    function escaparCSV(valor){
+      const texto = (valor === null || valor === undefined) ? '' : String(valor);
+      if(/[",;\n]/.test(texto)) return '"' + texto.replace(/"/g, '""') + '"';
+      return texto;
+    }
+
+    const cabecalho = colunas.map(c => escaparCSV(c.titulo)).join(';');
+    const linhas = linhasFiltradasAtuais.map(function(r){
+      return colunas.map(function(c){ return escaparCSV(c.col ? r[c.col] : ''); }).join(';');
+    });
+
+    const csv = '\uFEFF' + [cabecalho].concat(linhas).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'frota_parada_3dias_' + new Date().toISOString().slice(0,10) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  document.getElementById('btn-csv').addEventListener('click', exportarCSV);
+  document.getElementById('btn-pdf').addEventListener('click', () => window.print());
 
   loadData();
   setInterval(loadData, REFRESH_MS);
